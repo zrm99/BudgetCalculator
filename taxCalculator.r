@@ -59,13 +59,22 @@ CalculateTaxes <- R6Class("CalculateTaxes",
                 } else if (private$annualIncome > 578125) {
                     tax <- (11000 * 0.1) + (0.12 * (44725 - 11000)) + (0.22 * (95375 - 44725)) + (0.24 * (182100 - 95375)) + (0.32 * (231250 - 182100)) + (0.35 * (578125 - 231250)) + (0.37 * private$annualIncome)
                 }
-                private$taxesThing(list(11000, 44725, 95375, 182100, 231250, 578125), list(0.1, 0.12, 0.22, 0.24, 0.32, 0.35, 0.37))
+                private$taxBracketsFormula(list(11000, 44725, 95375, 182100, 231250, 578125), list(0.1, 0.12, 0.22, 0.24, 0.32, 0.35, 0.37))
                 print(paste("CORRECT TAX: ", tax))
                 return(tax)
-            }
-            # Formula, first operation is always the same. Last operation is always the same.
-            # Everything in the middle repeats but is varied
+            },
 
+            headOfHouseholdFederalTaxes = function() {
+                private$taxBracketsFormula(list(15700, 59850, 95350, 182100, 231250, 578100), list(0.1, 0.12, 0.22, 0.24, 0.32, 0.35, 0.37))
+            },
+
+            marriedFilingSeparateFederalTaxes = function() {
+                private$taxBracketsFormula(list(11000, 44725, 95375, 182100, 231250, 346875), list(0.1, 0.12, 0.22, 0.24, 0.32, 0.35, 0.37))
+            },
+
+            marriedFilingTogetherFederalTaxes = function() {
+                private$taxBracketsFormula(list(22000, 89450, 190750, 364200, 462500, 693750), list(0.1, 0.12, 0.22, 0.24, 0.32, 0.35, 0.37))
+            }
 
     ), 
 
@@ -76,29 +85,45 @@ CalculateTaxes <- R6Class("CalculateTaxes",
         stateTaxedIncome = NA,
         localTaxedIncome = NA,
         totalTaxedIncome = NA,
-        # might be completely working now
-        taxesThing = function(brackets, percents) {
+        # @params {list(), list()}
+        taxBracketsFormula = function(brackets, percents) {
+            income <- NA
+            if (!is.na(private$annualIncome)) {
+                income <- private$annualIncome
+            } else if (!is.na(private$marriedIncome)) {
+                income <- private$marriedIncome
+            }
             tax <- 0
             for (i in seq_along(brackets)) {
-            if (private$annualIncome <= brackets[[1]]) {
-                tax <- private$annualIncome * percents[[1]]
+            if (income <= brackets[[1]]) {
+                tax <- income * percents[[1]]
                 break;
-            } else if (private$annualIncome <= brackets[[i]] && private$annualIncome > brackets[[i-1]] && i > 1) {
-                previous <- (11000 * 0.1)
+            } else if (i == length(brackets) && income > brackets[[i]]) {
+                print(brackets[[i]])
+                previous <- (brackets[[1]] * percents[[1]])
+                for (j in seq_along(brackets)) {
+                    if (j+1 <= i) {
+                        previous = previous + (percents[[j+1]] * (brackets[[j+1]] - brackets[[j]]))
+                        print(paste(percents[[j+1]], " * (", brackets[[j+1]], " - ", brackets[[j]], ")"))
+                    } else {
+                        tax <- previous + (percents[[i+1]] * (income))
+                        break;
+                    }
+                }
+            } else if (income <= brackets[[i]] && income > brackets[[i-1]] && i > 1) {
+                previous <- (brackets[[1]] * percents[[1]])
                 for (j in seq_along(brackets)) {
                     if (j+1 != i) {
                         previous = previous + (percents[[j+1]] * (brackets[[j+1]] - brackets[[j]]))
                         print(paste(percents[[j+1]], " * (", brackets[[j+1]], " - ", brackets[[j]], ")"))
-                        # print(paste("pre: ", previous))
                     } else {
-                        tax <- previous + (percents[[i]] * (private$annualIncome - brackets[[i-1]]))
-                        # print(paste("percent: ", percents[[i]]))
-                        # matching current/end bracket
+                        tax <- previous + (percents[[i]] * (income - brackets[[i-1]]))
                         break;
                     }
                 }
             }
             }
+            federalTaxedIncome <- tax
             print(paste("TT", tax))
         }
     )
@@ -106,6 +131,6 @@ CalculateTaxes <- R6Class("CalculateTaxes",
 
 
 
-taxes <- CalculateTaxes$new(196600)
+taxes <- CalculateTaxes$new(98600)
 print(paste("TEST: ", taxes$singleFederalTaxes()))
 # taxes$marriedFilingTogetherFederalTaxes()
