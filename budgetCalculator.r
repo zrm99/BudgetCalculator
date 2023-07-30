@@ -89,14 +89,18 @@ BudgetCalculator <- R6Class("BudgetCalculator",
 
     setBills = function() {
         for (name in names(private$peopleInfo)) {
+            if (is.null(private$peopleInfo[[name]][["bills"]])) {
+            private$peopleInfo[[name]][["bills"]] <- list()
+        }
         print(paste("How many bills does", name, "pay for?"))
         billCount <- as.numeric(readline())
-        print(paste("What is the name for this bill?"))
         while (billCount > 0) {
-            billName <- tolower(readline())
-            private$peopleInfo[[name]] <- list()
-            billCount <- billCount - 1
             print(paste("What is the name for this bill?"))
+            billName <- tolower(readline())
+            print(paste("What is the cost for this bill?"))
+            billCost <- as.numeric(readline())
+            private$peopleInfo[[name]][["bills"]][[billName]] <- billCost
+            billCount <- billCount - 1
         }
         # loop until billcount is zero
         }
